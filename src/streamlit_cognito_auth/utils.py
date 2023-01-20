@@ -7,9 +7,10 @@ from jose.utils import base64url_decode
 from .exceptions import TokenVerificationException
 
 # https://github.com/awslabs/aws-support-tools/blob/master/Cognito/decode-verify-jwt/decode-verify-jwt.py
+def verify_access_token(pool_id, app_client_id, region, token):
+    if not token:
+        raise TokenVerificationException("Empty access token")
 
-# change return to throw
-def verify(pool_id, app_client_id, region, token):
     keys_url = (
         f"https://cognito-idp.{region}.amazonaws.com/{pool_id}/.well-known/jwks.json"
     )
@@ -49,4 +50,5 @@ def verify(pool_id, app_client_id, region, token):
     # and the Audience  (use claims['client_id'] if verifying an access token)
     if claims["client_id"] != app_client_id:
         raise TokenVerificationException("Token was not issued for this client id")
+
     return claims
