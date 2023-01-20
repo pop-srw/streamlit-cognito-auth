@@ -66,6 +66,18 @@ cd examples
 streamlit run example.py
 ```
 
+login
+![Login](images/login.gif)
+
+logout
+![Logout](images/logout.gif)
+
+Login with temporary password
+![Login with temporary password](images/password-reset-01.gif)
+
+Reset password and login
+![Login with temporary password](images/password-reset-02.gif)
+
 ## Limitations
 
 - This package has been tested and known to work with Amazon Cognito pools that have an app client with a secret enabled and using the SRP protocol. Other configurations of Cognito pools may not be supported and have not been tested.
@@ -78,6 +90,7 @@ streamlit run example.py
 - [x] Support for "USER_SRP_AUTH" authentication flow
 - [ ] Support for "REFRESH_TOKEN_AUTH / REFRESH_TOKEN" authentication flow
 - [ ] Support for "USER_PASSWORD_AUTH" authentication flow
+- [x] Support for password reset for temporary password
 
 ## Credits
 
