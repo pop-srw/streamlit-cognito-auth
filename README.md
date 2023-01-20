@@ -81,6 +81,6 @@ streamlit run example.py
 
 ## Credits
 
-This package is inspired by the work of [mkhorasani/Streamlit-Authenticator](https://github.com/mkhorasani/Streamlit-Authenticator) and I would like to thank the author for their work.
-
-JWT verification functionality is based on the work of [awslabs/aws-support-tools](https://github.com/awslabs/aws-support-tools/blob/master/Cognito/decode-verify-jwt/decode-verify-jwt.py) and I would like to thank the author for their work.
+- This package is inspired by the work of [mkhorasani/Streamlit-Authenticator](https://github.com/mkhorasani/Streamlit-Authenticator) and I would like to thank the author for their work.
+- JWT verification functionality is based on the work of [awslabs/aws-support-tools](https://github.com/awslabs/aws-support-tools/blob/master/Cognito/decode-verify-jwt/decode-verify-jwt.py) and I would like to thank the author for their work.
+- Thanks to OpenAI's ChatGPT for providing helpful suggestions and examples throughout the development of this project.
