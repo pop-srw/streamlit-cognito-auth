@@ -1,18 +1,19 @@
 import time
 import boto3
 
-from warrant import Cognito, AWSSRP
+from warrant import AWSSRP
 import streamlit as st
 import extra_streamlit_components as stx
 
-# https://github.com/awslabs/aws-support-tools/blob/master/Cognito/decode-verify-jwt/decode-verify-jwt.py
-from .utils import verify
+from .exceptions import TokenVerificationException
+from .utils import verify_access_token
 
 
 class CognitoAuthenticator:
     def __init__(self, pool_id, app_client_id, app_client_secret, boto_client=None):
         self.client = boto_client or boto3.client("cognito-idp")
         self.pool_id = pool_id
+        self.pool_region = pool_id.split("_")[0]
         self.app_client_id = app_client_id
         self.app_client_secret = app_client_secret
 
@@ -24,28 +25,27 @@ class CognitoAuthenticator:
         st.session_state["auth_refresh_token"] = self.cookie_manager.get(
             "refresh_token"
         )
-        claims = self._verify_jwt(st.session_state["auth_access_token"])
-        # later, refresh token
 
-        st.write(claims)
-        if not claims:
+        try:
+
+            claims = verify_access_token(
+                self.pool_id,
+                self.app_client_id,
+                self.pool_region,
+                st.session_state["auth_access_token"],
+            )
+            # later, refresh token here
+            if not claims:
+                raise TokenVerificationException("No returned claims")
+
+            st.session_state["auth_state"] = "logged_in"
+            st.session_state["auth_username"] = claims["username"]
+            st.session_state["auth_expires"] = claims["exp"]
+
+        except TokenVerificationException:
             st.session_state["auth_state"] = "logged_out"
             st.session_state["auth_username"] = ""
             st.session_state["auth_expires"] = 0
-            return
-
-        st.session_state["auth_state"] = "logged_in"
-        st.session_state["auth_username"] = claims["username"]
-        st.session_state["auth_expires"] = claims["exp"]
-
-    # fake verify
-    def _verify_jwt(self, access_token):
-        if not access_token:
-            return False
-
-        return verify(self.pool_id, self.app_client_id, "ap-southeast-1", access_token)
-        # claims = jwt.get_unverified_claims(access_token)
-        # return claims
 
     def _clear_cookies(self):
         self.cookie_manager.delete("access_token", key="delete_access_token")
@@ -156,7 +156,7 @@ class CognitoAuthenticator:
             "USERNAME": username,
             "NEW_PASSWORD": new_password,
         }
-        # this part is missing from warrant lib
+        # warrant lib does not support reset password with client secret app client
         if aws_srp.client_secret is not None:
             challenge_response.update(
                 {
@@ -181,14 +181,18 @@ class CognitoAuthenticator:
             return True
 
         except self.client.exceptions.NotAuthorizedException as e:
-            pass
+            self._reset_session_state()
+            return False
 
         except Exception as e:
-            raise e
-        finally:
             self._reset_session_state()
+            raise e
 
-        return False
+    def _show_password_reset_form(self):
+        pass
+
+    def _show_login_form(self):
+        pass
 
     def login(self):
         if "auth_state" not in st.session_state:
@@ -198,9 +202,11 @@ class CognitoAuthenticator:
 
         auth_form_placeholder = st.empty()
 
+        # logged in
         if st.session_state["auth_state"] == "logged_in":
             return True
 
+        # password reset
         if st.session_state["auth_reset_password_session"]:
             with auth_form_placeholder:
                 cols = st.columns([1, 3, 1])
@@ -220,22 +226,33 @@ class CognitoAuthenticator:
                         confirm_new_password = st.text_input(
                             "Confirm Password", type="password"
                         )
-                        if st.form_submit_button("Reset Password"):
-                            if new_password == confirm_new_password:
-                                if self._reset_password(
-                                    username=username,
-                                    password=password,
-                                    new_password=new_password,
-                                ):
-                                    st.success("Logged in")
-                                    time.sleep(1.5)
-                                    st.experimental_rerun()
-                                else:
-                                    st.error("Fail to reset password")
-                            else:
-                                st.error("New password mismatch")
-            return False
 
+                        reset_password_submitted = st.form_submit_button(
+                            "Reset Password"
+                        )
+                        if not reset_password_submitted:
+                            return False
+
+                        if new_password != confirm_new_password:
+                            st.error("New password mismatch")
+                            return False
+
+                        is_password_reset = self._reset_password(
+                            username=username,
+                            password=password,
+                            new_password=new_password,
+                        )
+                        if not is_password_reset:
+                            st.error("Fail to reset password")
+                            return False
+
+                        st.success("Logged in")
+                        time.sleep(1.5)
+                        st.experimental_rerun()
+
+            raise Exception("Should not reach here")
+
+        # login
         with auth_form_placeholder:
             cols = st.columns([1, 3, 1])
             with cols[1]:
@@ -243,24 +260,30 @@ class CognitoAuthenticator:
                     st.subheader("Login")
                     username = st.text_input("Username")
                     password = st.text_input("Password", type="password")
-                    if st.form_submit_button("Login"):
-                        if self._login(
+                    login_submitted = st.form_submit_button("Login")
+                    if not login_submitted:
+                        return False
+
+                    try:
+                        is_logged_in = self._login(
                             username=username,
                             password=password,
-                        ):
-                            st.success("Logged in")
-                            time.sleep(1.5)
-                            st.experimental_rerun()
-                        else:
-                            # login fail and reset password_session was set
-                            if st.session_state["auth_reset_password_session"]:
-                                st.info("Password reset is required")
-                                time.sleep(1.5)
-                                st.experimental_rerun()
-                            else:
-                                st.error("Invalid username or password")
+                        )
 
-        return False
+                        if not is_logged_in:
+                            st.error("Invalid username or password")
+                            return False
+
+                        st.success("Logged in")
+                        time.sleep(1.5)
+                        st.experimental_rerun()
+                    except Exception as e:
+                        st.write(e)
+                        st.info("Password reset is required")
+                        time.sleep(1.5)
+                        st.experimental_rerun()
+
+        raise Exception("Should not reach here")
 
     def logout(self):
         self._clear_cookies()
