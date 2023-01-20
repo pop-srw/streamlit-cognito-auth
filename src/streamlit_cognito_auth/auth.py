@@ -27,7 +27,6 @@ class CognitoAuthenticator:
         )
 
         try:
-
             claims = verify_access_token(
                 self.pool_id,
                 self.app_client_id,
@@ -123,20 +122,21 @@ class CognitoAuthenticator:
                 ChallengeResponses=challenge_response,
             )
 
-            # if new password required
+            # new password required
             if tokens.get("ChallengeName") == aws_srp.NEW_PASSWORD_REQUIRED_CHALLENGE:
                 self._set_reset_password_temp(tokens["Session"], username, password)
                 return False
 
             self._set_auth_cookies(tokens)
             return True
+
         except self.client.exceptions.NotAuthorizedException as e:
             self._reset_session_state()
+            return False
+
         except Exception as e:
             self._reset_session_state()
             raise e
-
-        return False
 
     def _reset_password(
         self,
@@ -156,6 +156,7 @@ class CognitoAuthenticator:
             "USERNAME": username,
             "NEW_PASSWORD": new_password,
         }
+
         # warrant lib does not support reset password with client secret app client
         if aws_srp.client_secret is not None:
             challenge_response.update(
@@ -188,72 +189,39 @@ class CognitoAuthenticator:
             self._reset_session_state()
             raise e
 
-    def _show_password_reset_form(self):
-        pass
+    def _show_password_reset_form(self, placeholder):
+        with placeholder:
+            cols = st.columns([1, 3, 1])
+            with cols[1]:
+                with st.form("reset_password_form"):
+                    st.subheader("Reset Password")
+                    username = st.text_input(
+                        "Username",
+                        value=st.session_state["auth_reset_password_username"],
+                    )
+                    password = st.text_input(
+                        "Password",
+                        type="password",
+                        value=st.session_state["auth_reset_password_password"],
+                    )
+                    new_password = st.text_input("New Password", type="password")
+                    confirm_new_password = st.text_input(
+                        "Confirm Password", type="password"
+                    )
+                    password_reset_submitted = st.form_submit_button("Reset Password")
+                    status_container = st.container()
 
-    def _show_login_form(self):
-        pass
+        return (
+            password_reset_submitted,
+            username,
+            password,
+            new_password,
+            confirm_new_password,
+            status_container,
+        )
 
-    def login(self):
-        if "auth_state" not in st.session_state:
-            self._reset_session_state()
-
-        self._load_session_state_from_cookies()
-
-        auth_form_placeholder = st.empty()
-
-        # logged in
-        if st.session_state["auth_state"] == "logged_in":
-            return True
-
-        # password reset
-        if st.session_state["auth_reset_password_session"]:
-            with auth_form_placeholder:
-                cols = st.columns([1, 3, 1])
-                with cols[1]:
-                    with st.form("reset_password_form"):
-                        st.subheader("Reset Password")
-                        username = st.text_input(
-                            "Username",
-                            value=st.session_state["auth_reset_password_username"],
-                        )
-                        password = st.text_input(
-                            "Password",
-                            type="password",
-                            value=st.session_state["auth_reset_password_password"],
-                        )
-                        new_password = st.text_input("New Password", type="password")
-                        confirm_new_password = st.text_input(
-                            "Confirm Password", type="password"
-                        )
-
-                        reset_password_submitted = st.form_submit_button(
-                            "Reset Password"
-                        )
-                        if not reset_password_submitted:
-                            return False
-
-                        if new_password != confirm_new_password:
-                            st.error("New password mismatch")
-                            return False
-
-                        is_password_reset = self._reset_password(
-                            username=username,
-                            password=password,
-                            new_password=new_password,
-                        )
-                        if not is_password_reset:
-                            st.error("Fail to reset password")
-                            return False
-
-                        st.success("Logged in")
-                        time.sleep(1.5)
-                        st.experimental_rerun()
-
-            raise Exception("Should not reach here")
-
-        # login
-        with auth_form_placeholder:
+    def _show_login_form(self, placeholder):
+        with placeholder:
             cols = st.columns([1, 3, 1])
             with cols[1]:
                 with st.form("login_form"):
@@ -261,29 +229,90 @@ class CognitoAuthenticator:
                     username = st.text_input("Username")
                     password = st.text_input("Password", type="password")
                     login_submitted = st.form_submit_button("Login")
-                    if not login_submitted:
-                        return False
+                    status_container = st.container()
 
-                    try:
-                        is_logged_in = self._login(
-                            username=username,
-                            password=password,
-                        )
+        return login_submitted, username, password, status_container
 
-                        if not is_logged_in:
-                            st.error("Invalid username or password")
-                            return False
+    def login(self):
+        if "auth_state" not in st.session_state:
+            self._reset_session_state()
 
-                        st.success("Logged in")
-                        time.sleep(1.5)
-                        st.experimental_rerun()
-                    except Exception as e:
-                        st.write(e)
-                        st.info("Password reset is required")
-                        time.sleep(1.5)
-                        st.experimental_rerun()
+        self._load_session_state_from_cookies()
 
-        raise Exception("Should not reach here")
+        form_placeholder = st.empty()
+
+        # logged in
+        if st.session_state["auth_state"] == "logged_in":
+            return True
+
+        # password reset
+        if st.session_state["auth_reset_password_session"]:
+            (
+                password_reset_submitted,
+                username,
+                password,
+                new_password,
+                confirm_new_password,
+                status_container,
+            ) = self._show_password_reset_form(form_placeholder)
+            if not password_reset_submitted:
+                return False
+
+            if not new_password:
+                status_container.error("New password is empty")
+                return False
+
+            if new_password != confirm_new_password:
+                status_container.error("New password mismatch")
+                return False
+
+            is_password_reset = self._reset_password(
+                username=username,
+                password=password,
+                new_password=new_password,
+            )
+            if not is_password_reset:
+                status_container.error("Fail to reset password")
+                return False
+
+            status_container.success("Logged in")
+            time.sleep(1.5)
+            st.experimental_rerun()
+
+        # login
+        login_submitted, username, password, status_container = self._show_login_form(
+            form_placeholder
+        )
+        if not login_submitted:
+            return False
+
+        try:
+            is_logged_in = self._login(
+                username=username,
+                password=password,
+            )
+
+            if st.session_state["auth_reset_password_session"]:
+                status_container.info("Password reset is required")
+                time.sleep(1.5)
+                st.experimental_rerun()
+
+            if not is_logged_in:
+                status_container.error("Invalid username or password")
+                return False
+
+            status_container.success("Logged in")
+            time.sleep(1.5)
+            st.experimental_rerun()
+
+        except Exception as e:
+            status_container.error(f"Unknown error {e}")
+            time.sleep(1.5)
+            st.experimental_rerun()
+
+        # should not reach here
+        # prevent other code from running
+        st.stop()
 
     def logout(self):
         self._clear_cookies()
