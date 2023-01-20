@@ -67,16 +67,16 @@ streamlit run example.py
 ```
 
 login
-![Login](images/login.gif)
+![Login](https://raw.githubusercontent.com/pop-srw/streamlit-cognito-auth/main/images/login.gif)
 
 logout
-![Logout](images/logout.gif)
+![Logout](https://raw.githubusercontent.com/pop-srw/streamlit-cognito-auth/main/images/logout.gif)
 
 Login with temporary password
-![Login with temporary password](images/password-reset-01.gif)
+![Login with temporary password](https://raw.githubusercontent.com/pop-srw/streamlit-cognito-auth/main/images/password-reset-01.gif)
 
 Reset password and login
-![Login with temporary password](images/password-reset-02.gif)
+![Login with temporary password](https://raw.githubusercontent.com/pop-srw/streamlit-cognito-auth/main/images/password-reset-02.gif)
 
 ## Limitations
 
