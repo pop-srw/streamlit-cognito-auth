@@ -13,9 +13,11 @@ from pycognito import AWSSRP
 
 class CognitoAuthenticator:
     def __init__(self, pool_id, app_client_id, app_client_secret, boto_client=None):
-        self.client = boto_client or boto3.client("cognito-idp")
-        self.pool_id = pool_id
         self.pool_region = pool_id.split("_")[0]
+        self.client = boto_client or boto3.client(
+            "cognito-idp", region_name=self.pool_region
+        )
+        self.pool_id = pool_id
         self.app_client_id = app_client_id
         self.app_client_secret = app_client_secret
 
@@ -98,6 +100,7 @@ class CognitoAuthenticator:
 
     def _login(self, username, password):
         aws_srp = AWSSRP(
+            client=self.client,
             pool_id=self.pool_id,
             client_id=self.app_client_id,
             client_secret=self.app_client_secret,
@@ -132,6 +135,7 @@ class CognitoAuthenticator:
         new_password,
     ):
         aws_srp = AWSSRP(
+            client=self.client,
             pool_id=self.pool_id,
             client_id=self.app_client_id,
             client_secret=self.app_client_secret,

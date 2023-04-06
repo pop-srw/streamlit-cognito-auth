@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2023-04-06
+
+### Fixed
+
+- Fixed an issue where `awssrp` was requiring a region.
+
 ## [1.1.0] - 2023-04-06
 
 ### Changed
