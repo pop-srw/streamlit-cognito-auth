@@ -47,9 +47,9 @@ You can find an example of how to use the package in the examples directory.
 To run the example file, you can use the following command, while replacing `your_pool_id`, `your_app_client_id` and `your_app_client_secret` with the actual values:
 
 ```sh
-POOL_ID="your_pool_id"
-APP_CLIENT_ID="your_app_client_id"
-APP_CLIENT_SECRET="your_app_client_secret"
+export POOL_ID="your_pool_id"
+export APP_CLIENT_ID="your_app_client_id"
+export APP_CLIENT_SECRET="your_app_client_secret"
 
 cd examples
 streamlit run example.py
@@ -83,7 +83,7 @@ Reset password and login
 - This package has been tested and known to work with Amazon Cognito pools that have an app client with a secret enabled and using the SRP protocol. Other configurations of Cognito pools may not be supported and have not been tested.
 - This package has been tested and known to work with python 3.8 in Linux environment. It may not work with other versions of python or other operating systems.
 
-## Future Work
+## Features
 
 - [x] Support for Cognito pools with app client secret
 - [ ] Support for Cognito pools without app client secret
@@ -91,9 +91,11 @@ Reset password and login
 - [ ] Support for "REFRESH_TOKEN_AUTH / REFRESH_TOKEN" authentication flow
 - [ ] Support for "USER_PASSWORD_AUTH" authentication flow
 - [x] Support for password reset for temporary password
+- [ ] Support for password reset with OTP
 
 ## Credits
 
-- This package is inspired by the work of [mkhorasani/Streamlit-Authenticator](https://github.com/mkhorasani/Streamlit-Authenticator) and I would like to thank the author for their work.
-- JWT verification functionality is based on the work of [awslabs/aws-support-tools](https://github.com/awslabs/aws-support-tools/blob/master/Cognito/decode-verify-jwt/decode-verify-jwt.py) and I would like to thank the author for their work.
-- Thanks to OpenAI's ChatGPT for providing helpful suggestions and examples throughout the development of this project.
+- This package is inspired by the work of [mkhorasani/Streamlit-Authenticator](https://github.com/mkhorasani/Streamlit-Authenticator), and we would like to thank the author for their work.
+- JWT verification functionality is based on the work of [awslabs/aws-support-tools](https://github.com/awslabs/aws-support-tools/blob/master/Cognito/decode-verify-jwt/decode-verify-jwt.py), and we would like to thank the author for their work.
+- This package uses the `pycognito` library for authentication, which is a Python library that provides a simple interface for working with AWS Cognito. We would like to express our gratitude to the authors of `pycognito` for their work and for providing an excellent library for working with AWS Cognito.
+- We would also like to thank OpenAI's ChatGPT for providing helpful suggestions and examples throughout the development of this project.

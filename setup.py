@@ -2,14 +2,13 @@ from setuptools import setup, find_packages
 
 setup(
     name="streamlit-cognito-auth",
-    version="1.0.2",
+    version="1.1.0",
     packages=find_packages("src"),
     package_dir={"": "src"},
     include_package_data=True,
     install_requires=[
         "boto3 >= 1.26.52",
-        "python-jose >= 3.3.0",
-        "warrant >= 0.6.1",
+        "pycognito >= 2022.12.0",
         "streamlit >= 1.17.0",
         "extra_streamlit_components >= 0.1.56",
     ],

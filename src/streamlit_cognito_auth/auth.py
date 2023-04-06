@@ -1,12 +1,14 @@
 import time
 import boto3
 
-from warrant import AWSSRP
 import streamlit as st
 import extra_streamlit_components as stx
 
 from .exceptions import TokenVerificationException
 from .utils import verify_access_token
+
+import pycognito
+from pycognito import AWSSRP
 
 
 class CognitoAuthenticator:
@@ -96,39 +98,24 @@ class CognitoAuthenticator:
 
     def _login(self, username, password):
         aws_srp = AWSSRP(
-            client=self.client,
             pool_id=self.pool_id,
             client_id=self.app_client_id,
             client_secret=self.app_client_secret,
             username=username,
             password=password,
         )
-        auth_params = aws_srp.get_auth_params()
-        response = self.client.initiate_auth(
-            AuthFlow="USER_SRP_AUTH",
-            AuthParameters=auth_params,
-            ClientId=aws_srp.client_id,
-        )
-        if response["ChallengeName"] != aws_srp.PASSWORD_VERIFIER_CHALLENGE:
-            raise NotImplementedError(
-                f"The {response['ChallengeName']} challenge is not supported"
-            )
-
-        challenge_response = aws_srp.process_challenge(response["ChallengeParameters"])
         try:
-            tokens = self.client.respond_to_auth_challenge(
-                ClientId=aws_srp.client_id,
-                ChallengeName=aws_srp.PASSWORD_VERIFIER_CHALLENGE,
-                ChallengeResponses=challenge_response,
-            )
-
-            # new password required
-            if tokens.get("ChallengeName") == aws_srp.NEW_PASSWORD_REQUIRED_CHALLENGE:
-                self._set_reset_password_temp(tokens["Session"], username, password)
-                return False
-
+            tokens = aws_srp.authenticate_user()
             self._set_auth_cookies(tokens)
             return True
+
+        except pycognito.exceptions.ForceChangePasswordException as e:
+            self._set_reset_password_temp("x", username, password)
+            return False
+
+        except self.client.exceptions.PasswordResetRequiredException as e:
+            self._reset_session_state()
+            return False
 
         except self.client.exceptions.NotAuthorizedException as e:
             self._reset_session_state()
@@ -145,38 +132,14 @@ class CognitoAuthenticator:
         new_password,
     ):
         aws_srp = AWSSRP(
-            client=self.client,
             pool_id=self.pool_id,
             client_id=self.app_client_id,
             client_secret=self.app_client_secret,
             username=username,
             password=password,
         )
-        challenge_response = {
-            "USERNAME": username,
-            "NEW_PASSWORD": new_password,
-        }
-
-        # warrant lib does not support reset password with client secret app client
-        if aws_srp.client_secret is not None:
-            challenge_response.update(
-                {
-                    "SECRET_HASH": aws_srp.get_secret_hash(
-                        aws_srp.username,
-                        aws_srp.client_id,
-                        aws_srp.client_secret,
-                    )
-                }
-            )
-
-        reset_password_session = st.session_state["auth_reset_password_session"]
         try:
-            tokens = self.client.respond_to_auth_challenge(
-                ClientId=aws_srp.client_id,
-                ChallengeName=aws_srp.NEW_PASSWORD_REQUIRED_CHALLENGE,
-                Session=reset_password_session,
-                ChallengeResponses=challenge_response,
-            )
+            tokens = aws_srp.set_new_password_challenge(new_password=new_password)
             self._set_auth_cookies(tokens)
             self._clear_reset_password_temp()
             return True
@@ -203,6 +166,7 @@ class CognitoAuthenticator:
                         "Password",
                         type="password",
                         value=st.session_state["auth_reset_password_password"],
+                        disabled=True,
                     )
                     new_password = st.text_input("New Password", type="password")
                     confirm_new_password = st.text_input(
