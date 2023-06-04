@@ -12,7 +12,9 @@ from pycognito import AWSSRP
 
 
 class CognitoAuthenticator:
-    def __init__(self, pool_id, app_client_id, app_client_secret, boto_client=None):
+    def __init__(
+        self, pool_id, app_client_id, app_client_secret=None, boto_client=None
+    ):
         self.pool_region = pool_id.split("_")[0]
         self.client = boto_client or boto3.client(
             "cognito-idp", region_name=self.pool_region
@@ -99,14 +101,18 @@ class CognitoAuthenticator:
         )
 
     def _login(self, username, password):
-        aws_srp = AWSSRP(
-            client=self.client,
-            pool_id=self.pool_id,
-            client_id=self.app_client_id,
-            client_secret=self.app_client_secret,
-            username=username,
-            password=password,
-        )
+        aws_srp_args = {
+            "client": self.client,
+            "pool_id": self.pool_id,
+            "client_id": self.app_client_id,
+            "username": username,
+            "password": password,
+        }
+
+        if self.app_client_secret is not None:
+            aws_srp_args["client_secret"] = self.app_client_secret
+
+        aws_srp = AWSSRP(**aws_srp_args)
         try:
             tokens = aws_srp.authenticate_user()
             self._set_auth_cookies(tokens)
@@ -134,14 +140,18 @@ class CognitoAuthenticator:
         password,
         new_password,
     ):
-        aws_srp = AWSSRP(
-            client=self.client,
-            pool_id=self.pool_id,
-            client_id=self.app_client_id,
-            client_secret=self.app_client_secret,
-            username=username,
-            password=password,
-        )
+        aws_srp_args = {
+            "client": self.client,
+            "pool_id": self.pool_id,
+            "client_id": self.app_client_id,
+            "username": username,
+            "password": password,
+        }
+
+        if self.app_client_secret is not None:
+            aws_srp_args["client_secret"] = self.app_client_secret
+
+        aws_srp = AWSSRP(**aws_srp_args)
         try:
             tokens = aws_srp.set_new_password_challenge(new_password=new_password)
             self._set_auth_cookies(tokens)
