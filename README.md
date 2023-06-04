@@ -86,7 +86,7 @@ Reset password and login
 ## Features
 
 - [x] Support for Cognito pools with app client secret
-- [ ] Support for Cognito pools without app client secret
+- [x] Support for Cognito pools without app client secret
 - [x] Support for "USER_SRP_AUTH" authentication flow
 - [ ] Support for "REFRESH_TOKEN_AUTH / REFRESH_TOKEN" authentication flow
 - [ ] Support for "USER_PASSWORD_AUTH" authentication flow

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2023-06-04
+
+### Added
+
+- Added support for Cognito pools without app client secret.
+
 ## [1.1.1] - 2023-04-06
 
 ### Fixed
