@@ -1,1 +1,1 @@
-from .auth import CognitoAuthenticator
+from .auth import CognitoAuthenticator, CognitoHostedUIAuthenticator

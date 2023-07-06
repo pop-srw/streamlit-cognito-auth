@@ -1,4 +1,4 @@
-import pycognito
+import pycognito # type: ignore
 from pycognito import Cognito
 
 from .exceptions import TokenVerificationException
