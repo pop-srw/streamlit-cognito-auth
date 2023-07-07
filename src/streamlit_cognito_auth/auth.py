@@ -15,7 +15,7 @@ from .utils import verify_access_token
 import pycognito # type: ignore
 from pycognito import AWSSRP
 
-from pydantic import BaseModel, Field, ValidationError, Extra
+from pydantic import BaseModel, Field, ValidationError, Extra, parse_obj_as
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -595,7 +595,7 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
             raise TokenVerificationException("Invalid authorization code: " + resp.text)
         else:
             resp.raise_for_status()
-        res = Credentials.model_validate(resp.json())
+        res = parse_obj_as(Credentials, resp.json())
         return res
 
     def show_login_button(
