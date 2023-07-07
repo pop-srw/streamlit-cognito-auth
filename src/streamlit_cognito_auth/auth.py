@@ -603,7 +603,7 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
         response_type: str = "code",
         border_color: str = "rgba(49, 51, 63, 0.2)",
         hover_color: str = "rgb(0, 82, 238)",
-        target: str = "_parent",
+        target: str = "_blank",
     ) -> None:
         login_url = self.login_url(response_type=response_type)
         button_style = self.BUTTON_STYLE.format(border_color=border_color, hover_color=hover_color)
@@ -620,7 +620,7 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
             f"&redirect_uri={self.redirect_uri}"
         )
 
-    def login(self, show_login_button=True) -> bool:
+    def login(self, show_login_button=True, **kwargs) -> bool:
 
         # logged in
         if self.session_manager.is_logged_in():
@@ -638,6 +638,6 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
                 logged_in = self._set_state_login(credentials)
                 st.experimental_set_query_params(code="")
         elif show_login_button:
-            self.show_login_button()
+            self.show_login_button(**kwargs)
 
         return logged_in
