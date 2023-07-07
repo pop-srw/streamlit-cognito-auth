@@ -7,8 +7,6 @@ pool_id = os.environ["POOL_ID"]
 app_client_id = os.environ["APP_CLIENT_ID"]
 app_client_secret = os.environ["APP_CLIENT_SECRET"]
 
-print("EXAMPLE START")
-
 authenticator = CognitoAuthenticator(
     pool_id=pool_id,
     app_client_id=app_client_id,

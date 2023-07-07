@@ -2,6 +2,7 @@ from typing import Dict, Any, Type, TypeVar, Optional, Tuple
 import time
 from abc import ABC, abstractmethod
 import boto3
+import botocore.client
 import base64
 import requests
 import logging
@@ -22,6 +23,7 @@ logger = logging.getLogger(__name__)
 CR = TypeVar('CR', bound='Credentials')
 
 class Credentials(BaseModel, extra=Extra.allow):
+    """Temporary AWS Cognito credentials."""
 
     id_token: str = Field(..., min_length=1)
     access_token: str = Field(..., min_length=1)
@@ -30,11 +32,8 @@ class Credentials(BaseModel, extra=Extra.allow):
     token_type: str = Field(..., min_length=1)
 
     @classmethod
-    def from_auth_code_response(cls: Type[CR], response: Dict[str, Any]) -> CR:
-        return cls.model_validate(response)
-
-    @classmethod
     def from_tokens(cls: Type[CR], tokens: Dict[str, Any]) -> CR:
+        """Creates credentials from AWSSRP authentication response."""
         res = tokens["AuthenticationResult"]
         return cls(
             id_token=res["IdToken"],
@@ -46,6 +45,7 @@ class Credentials(BaseModel, extra=Extra.allow):
 
 
 class CognitoAuthSessionStateManager:
+    """Saves and loads authorization credentials to streamlit session state."""
 
     def __init__(self) -> None:
         def init_state(name, default_value: Any=""):
@@ -62,6 +62,7 @@ class CognitoAuthSessionStateManager:
         init_state("auth_reset_password_password")
 
     def set_credentials(self, credentials: Credentials) -> None:
+        """Saves the credentials to streamlit session state."""
         st.session_state["auth_id_token"] = credentials.id_token
         st.session_state["auth_access_token"] = credentials.access_token
         st.session_state["auth_refresh_token"] = credentials.refresh_token
@@ -69,6 +70,7 @@ class CognitoAuthSessionStateManager:
         st.session_state["auth_token_type"] = credentials.token_type
 
     def reset_credentials(self) -> None:
+        """Clears the credentials from streamlit session state."""
         st.session_state["auth_id_token"] = ""
         st.session_state["auth_access_token"] = ""
         st.session_state["auth_refresh_token"] = ""
@@ -76,6 +78,9 @@ class CognitoAuthSessionStateManager:
         st.session_state["auth_token_type"] = ""
 
     def load_credentials(self) -> Optional[Credentials]:
+        """Loads the credentials from streamlit session state.
+
+        Returns None if no credentials were found."""
         try:
             return Credentials(
                 id_token=st.session_state["auth_id_token"],
@@ -88,17 +93,21 @@ class CognitoAuthSessionStateManager:
             return None
 
     def set_logged_in(self, username: Optional[str]) -> None:
+        """Sets the logged in flag and the username in streamlit session state."""
         st.session_state["auth_state"] = "logged_in"
         st.session_state["auth_username"] = username
 
     def set_logged_out(self) -> None:
+        """Clears the logged in flag from streamlit session state."""
         st.session_state["auth_state"] = "logged_out"
         st.session_state["auth_username"] = ""
 
     def is_logged_in(self) -> bool:
+        """Returns if the user is currently logged in as of the streamlit session state."""
         return st.session_state["auth_state"] == "logged_in"
 
     def get_username(self) -> Optional[str]:
+        """Returns the username saved in streamlit session state."""
         return st.session_state["auth_username"] or None
 
     def set_reset_password_session(self,
@@ -106,40 +115,47 @@ class CognitoAuthSessionStateManager:
         reset_password_password: str,
         reset_password_session: str = "reset_password",
     ) -> None:
+        """Sets the password reset session to streamlit session state."""
         st.session_state["auth_reset_password_session"] = reset_password_session
         st.session_state["auth_reset_password_username"] = reset_password_username
         st.session_state["auth_reset_password_password"] = reset_password_password
 
     def clear_reset_password_session(self) -> None:
+        """Clears the password reset session from streamlit session state/"""
         st.session_state["auth_reset_password_session"] = ""
         st.session_state["auth_reset_password_username"] = ""
         st.session_state["auth_reset_password_password"] = ""
 
     def is_reset_password_session(self) -> bool:
+        """Returns if password reset session is set in streamlit session state."""
         return bool(st.session_state["auth_reset_password_session"])
 
     def reset_password_credentials(self) -> Tuple[Optional[str], Optional[str]]:
+        """Returns the password reset username and password saved in streamlit session state."""
         username = st.session_state["auth_reset_password_username"] or None
         password = st.session_state["auth_reset_password_password"] or None
         return (username, password)
 
 
 class CognitoAuthCookieManagerBase(ABC):
+    """Base class for cognito authenticator cookie managers."""
 
     @abstractmethod
     def set_credentials(self, credentials: Credentials) -> None:
-        '''Saves credentials to cookies.'''
+        """Saves credentials to cookies."""
 
     @abstractmethod
     def load_credentials(self) -> Optional[Credentials]:
-        '''Loads credentials from cookies.'''
+        """Loads credentials from cookies."""
 
     @abstractmethod
     def reset_credentials(self) -> None:
-        '''Clears cookie credentials.'''
+        """Clears cookie credentials."""
 
 
 class CognitoAuthCookieManagerNoop(CognitoAuthCookieManagerBase):
+    """Dummy cognito authenticator cookie manager to be used when the authenticator does not
+    wish to save credentials to cookies."""
 
     def set_credentials(self, credentials: Credentials) -> None:
         pass
@@ -152,6 +168,7 @@ class CognitoAuthCookieManagerNoop(CognitoAuthCookieManagerBase):
 
 
 class CognitoAuthCookieManager(CognitoAuthCookieManagerBase):
+    """Cognito authenticator cookie manager that saves credentials to browser cookies."""
 
     def __init__(self) -> None:
         try:
@@ -196,9 +213,23 @@ class CognitoAuthCookieManager(CognitoAuthCookieManagerBase):
 
 
 class CognitoAuthenticatorBase(ABC):
+    """Base class for cognito base authenticators.
+
+    Args:
+        pool_id: Cognito pool ID.
+        app_client_id: Cognito Application client ID.
+        app_client_secret: Cognito Application client secret.
+        boto_client: optional boto3 CognitoIdentityProvider ("cognito-idp") client
+        use_cookies: use cookies to save credentials.
+    """
 
     def __init__(
-        self, pool_id, app_client_id, app_client_secret=None, boto_client=None, use_cookies=True,
+        self,
+        pool_id: str,
+        app_client_id: str,
+        app_client_secret: Optional[str]=None,
+        boto_client: Optional[Any]=None,
+        use_cookies: bool=True,
     ):
         self.pool_region = pool_id.split("_")[0]
         self.client = boto_client or boto3.client(
@@ -268,24 +299,29 @@ class CognitoAuthenticatorBase(ABC):
         return logged_in
 
     @abstractmethod
-    def login(self):
-        pass
+    def login(self) -> bool:
+        """Logs in the user, showing UI elements if necessary.
+
+        Returns: True if the user was successfully logged in.
+        """
 
     def logout(self):
+        """Logs out the currently logged user."""
         logger.info("Logout")
         self._set_state_logout()
-        logger.info("_set_state_logout finished")
         self.cookie_manager.reset_credentials()
-        logger.info("cookie_manager.reset_credentials finished")
 
     def is_logged_in(self) -> bool:
+        """Returns wether the current user is logged in."""
         return self.session_manager.is_logged_in()
 
     def get_username(self) -> Optional[str]:
+        """Gets the user name of the current user, if he is logged in."""
         return self.session_manager.get_username()
 
 
 class CognitoAuthenticator(CognitoAuthenticatorBase):
+    """Authenticates the user with Cognito using custom streamlit UI elements."""
 
     def _show_login_form(self, placeholder):
         with placeholder:
@@ -301,6 +337,7 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
         return login_submitted, username, password, status_container
 
     def _show_password_reset_form(self, placeholder):
+        username, password = self.session_manager.reset_password_credentials()
         with placeholder:
             cols = st.columns([1, 3, 1])
             with cols[1]:
@@ -308,12 +345,12 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
                     st.subheader("Reset Password")
                     username = st.text_input(
                         "Username",
-                        value=st.session_state["auth_reset_password_username"],
+                        value=username,
                     )
                     password = st.text_input(
                         "Password",
                         type="password",
-                        value=st.session_state["auth_reset_password_password"],
+                        value=password,
                         disabled=True,
                     )
                     new_password = st.text_input("New Password", type="password")
@@ -415,7 +452,9 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
                 self.session_manager.clear_reset_password_session()
             return logged_in
 
-    def login(self):
+    def login(self) -> bool:
+
+        form_placeholder = st.empty()
 
         if self.session_manager.is_reset_password_session():
             logger.info("Password reset is requested")
@@ -450,8 +489,6 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
             status_container.success("Logged in")
             time.sleep(1.5)
             st.experimental_rerun()
-
-        form_placeholder = st.empty()
 
         logger.info("Trying to log in from saved credentials ...")
         logged_in = self._login_from_saved_credentials()
@@ -494,23 +531,24 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
 
 
 class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
+    """Authenticates the user with Cognito using Cognito Hosted UI."""
 
     BUTTON_STYLE = """\
 <style>
     .btn {
         cursor: pointer;
         border: 1px solid;
+        border-radius: 0.5rem;
         background-color: transparent;
-        border-radius: 0.25rem;
-        border-color: rgba(49, 51, 63, 0.2);
+        border-color: {border_color};
         padding-top: 0.25rem;
         padding-bottom: 0.25rem;
         padding-right: 0.75rem;
-        padding-left: 0.75rem;
+        padding-left: 0.75rem
     }
     .btn:hover {
-        color: rgb(0, 82, 238);
-        border-color: rgb(0, 82, 238);
+        color: {hover_color};
+        border-color: {hover_color};
     }
 </style>"""
 
@@ -550,17 +588,26 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
         res = Credentials.model_validate(resp.json())
         return res
 
-    def _show_login_button(self, response_type: str = "code") -> None:
-        login_url = (
-            f"{self.domain}login?response_type={response_type}&client_id={self.app_client_id}"
-            f"&redirect_uri={self.redirect_uri}"
-        )
-        st.write(self.BUTTON_STYLE, unsafe_allow_html=True)
+    def _show_login_button(
+        self,
+        response_type: str = "code",
+        border_color: str = "rgba(49, 51, 63, 0.2)",
+        hover_color: str = "rgb(0, 82, 238)"
+    ) -> None:
+        login_url = self.login_url(response_type=response_type)
+        button_style = self.BUTTON_STYLE.format(border_color=border_color, hover_color=hover_color)
+        st.write(button_style, unsafe_allow_html=True)
         st.write(
             f"""<a href="{login_url}" target="_self"><button class="btn">Login</button></a>""",
             unsafe_allow_html=True
         )
 
+    def login_url(self, response_type: str = "code") -> str:
+        """Returns the hosted UI login url."""
+        return (
+            f"{self.domain}login?response_type={response_type}&client_id={self.app_client_id}"
+            f"&redirect_uri={self.redirect_uri}"
+        )
 
     def login(self) -> bool:
 

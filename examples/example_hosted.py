@@ -9,8 +9,6 @@ app_client_secret = os.environ["APP_CLIENT_SECRET"]
 cognito_domain = os.environ["COGNITO_DOMAIN"]
 redirect_uri = os.environ["REDIRECT_URI"]
 
-print("EXAMPLE START")
-
 authenticator = CognitoHostedUIAuthenticator(
     pool_id=pool_id,
     app_client_id=app_client_id,
@@ -20,9 +18,12 @@ authenticator = CognitoHostedUIAuthenticator(
     use_cookies=False
 )
 
+st.button("Hello")
+
 is_logged_in = authenticator.login()
 if not is_logged_in:
     st.stop()
+
 
 
 def logout():
