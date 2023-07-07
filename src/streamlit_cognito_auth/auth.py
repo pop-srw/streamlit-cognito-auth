@@ -545,7 +545,7 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
 
     BUTTON_STYLE = """\
 <style>
-    .btn {
+    .btn {{
         cursor: pointer;
         border: 1px solid;
         border-radius: 0.5rem;
@@ -555,11 +555,11 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
         padding-bottom: 0.25rem;
         padding-right: 0.75rem;
         padding-left: 0.75rem
-    }
-    .btn:hover {
+    }}
+    .btn:hover {{
         color: {hover_color};
         border-color: {hover_color};
-    }
+    }}
 </style>"""
 
     def __init__(self,
