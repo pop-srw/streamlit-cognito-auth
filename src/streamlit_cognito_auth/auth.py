@@ -531,7 +531,17 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
 
 
 class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
-    """Authenticates the user with Cognito using Cognito Hosted UI."""
+    """Authenticates the user with Cognito using Cognito Hosted UI.
+
+    Args:
+        pool_id: Cognito pool ID.
+        app_client_id: Cognito Application client ID.
+        app_client_secret: Cognito Application client secret.
+        boto_client: optional boto3 CognitoIdentityProvider ("cognito-idp") client
+        use_cookies: use cookies to save credentials.
+        cognito_domain: Cognito hosted UI domain.
+        redirect_uri: Redirect URI of this streamlit application.
+    """
 
     BUTTON_STYLE = """\
 <style>
@@ -588,7 +598,7 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
         res = Credentials.model_validate(resp.json())
         return res
 
-    def _show_login_button(
+    def show_login_button(
         self,
         response_type: str = "code",
         border_color: str = "rgba(49, 51, 63, 0.2)",
@@ -609,7 +619,7 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
             f"&redirect_uri={self.redirect_uri}"
         )
 
-    def login(self) -> bool:
+    def login(self, show_login_button=True) -> bool:
 
         # logged in
         if self.session_manager.is_logged_in():
@@ -626,7 +636,7 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
             else:
                 logged_in = self._set_state_login(credentials)
                 st.experimental_set_query_params(code="")
-        else:
-            self._show_login_button()
+        elif show_login_button:
+            self.show_login_button()
 
         return logged_in
