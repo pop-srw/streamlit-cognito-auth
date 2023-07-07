@@ -602,13 +602,14 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
         self,
         response_type: str = "code",
         border_color: str = "rgba(49, 51, 63, 0.2)",
-        hover_color: str = "rgb(0, 82, 238)"
+        hover_color: str = "rgb(0, 82, 238)",
+        target: str = "_parent",
     ) -> None:
         login_url = self.login_url(response_type=response_type)
         button_style = self.BUTTON_STYLE.format(border_color=border_color, hover_color=hover_color)
         st.write(button_style, unsafe_allow_html=True)
         st.write(
-            f"""<a href="{login_url}" target="_self"><button class="btn">Login</button></a>""",
+            f"""<a href="{login_url}" target="{target}"><button class="btn">Login</button></a>""",
             unsafe_allow_html=True
         )
 
