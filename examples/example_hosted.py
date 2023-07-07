@@ -18,8 +18,6 @@ authenticator = CognitoHostedUIAuthenticator(
     use_cookies=False
 )
 
-st.button("Hello")
-
 is_logged_in = authenticator.login()
 if not is_logged_in:
     st.stop()
