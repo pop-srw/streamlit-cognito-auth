@@ -31,6 +31,7 @@ def logout():
 
 with st.sidebar:
     st.text(f"Welcome,\n{authenticator.get_username()}")
+    st.text(f"Your email is:\n{authenticator.get_email()}")
     st.button("Logout", "logout_btn", on_click=logout)
 
 st.header("Hello world")

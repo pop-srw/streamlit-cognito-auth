@@ -92,10 +92,11 @@ class CognitoAuthSessionStateManager:
         except ValidationError:
             return None
 
-    def set_logged_in(self, username: Optional[str]) -> None:
+    def set_logged_in(self, username: Optional[str], email: Optional[str]) -> None:
         """Sets the logged in flag and the username in streamlit session state."""
         st.session_state["auth_state"] = "logged_in"
         st.session_state["auth_username"] = username
+        st.session_state["auth_email"] = email
 
     def set_logged_out(self) -> None:
         """Clears the logged in flag from streamlit session state."""
@@ -108,7 +109,11 @@ class CognitoAuthSessionStateManager:
 
     def get_username(self) -> Optional[str]:
         """Returns the username saved in streamlit session state."""
-        return st.session_state["auth_username"] or None
+        return st.session_state.get("auth_username") or None
+
+    def get_email(self) -> Optional[str]:
+        """Returns the email saved in streamlit session state."""
+        return st.session_state.get("auth_email") or None
 
     def set_reset_password_session(self,
         reset_password_username: str,
@@ -257,7 +262,7 @@ class CognitoAuthenticatorBase(ABC):
 
     def _set_state_login(self, credentials: Credentials) -> bool:
         try:
-            claims = verify_access_token(
+            claims, user = verify_access_token(
                 self.pool_id,
                 self.app_client_id,
                 self.pool_region,
@@ -268,7 +273,11 @@ class CognitoAuthenticatorBase(ABC):
             claims = None
         if claims:
             self.session_manager.set_credentials(credentials=credentials)
-            self.session_manager.set_logged_in(username=claims["username"])
+            try:
+                email = user.email
+            except AttributeError:
+                email = None
+            self.session_manager.set_logged_in(username=claims["username"], email=email)
             self.cookie_manager.set_credentials(credentials=credentials)
             logger.info("Successfully logged in")
             return True
@@ -319,6 +328,9 @@ class CognitoAuthenticatorBase(ABC):
         """Gets the user name of the current user, if he is logged in."""
         return self.session_manager.get_username()
 
+    def get_email(self) -> Optional[str]:
+        """Gets the email of the current user, if he is logged in."""
+        return self.session_manager.get_email()
 
 class CognitoAuthenticator(CognitoAuthenticatorBase):
     """Authenticates the user with Cognito using custom streamlit UI elements."""
