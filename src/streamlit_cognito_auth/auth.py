@@ -332,6 +332,9 @@ class CognitoAuthenticatorBase(ABC):
         """Gets the email of the current user, if he is logged in."""
         return self.session_manager.get_email()
 
+    def get_credentials(self) -> Optional[Credentials]:
+        return self.session_manager.load_credentials()
+
 class CognitoAuthenticator(CognitoAuthenticatorBase):
     """Authenticates the user with Cognito using custom streamlit UI elements."""
 

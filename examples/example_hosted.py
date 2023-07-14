@@ -1,13 +1,18 @@
 import os
 import streamlit as st
+import boto3
 
 from streamlit_cognito_auth import CognitoHostedUIAuthenticator
+from streamlit_cognito_auth.session_provider import Boto3SessionProvider
 
-pool_id = os.environ["POOL_ID"]
-app_client_id = os.environ["APP_CLIENT_ID"]
-app_client_secret = os.environ["APP_CLIENT_SECRET"]
+pool_id = os.environ["COGNITO_USER_POOL_ID"]
+app_client_id = os.environ["COGNITO_APP_CLIENT_ID"]
+app_client_secret = os.environ["COGNITO_APP_CLIENT_SECRET"]
 cognito_domain = os.environ["COGNITO_DOMAIN"]
-redirect_uri = os.environ["REDIRECT_URI"]
+redirect_uri = os.environ["COGNITO_REDIRECT_URI"]
+region = os.environ["AWS_REGION"]
+identity_pool_id = os.environ["COGNITO_IDENTITY_POOL_ID"]
+aws_account_id = ""
 
 authenticator = CognitoHostedUIAuthenticator(
     pool_id=pool_id,
@@ -17,6 +22,14 @@ authenticator = CognitoHostedUIAuthenticator(
     redirect_uri=redirect_uri,
     use_cookies=False
 )
+
+session_provider = Boto3SessionProvider(
+    region=region,
+    account_id="647241695869",
+    user_pool_id=pool_id,
+    identity_pool_id=identity_pool_id,
+)
+
 
 is_logged_in = authenticator.login()
 if not is_logged_in:
@@ -36,3 +49,16 @@ with st.sidebar:
 
 st.header("Hello world")
 st.write("This is real app")
+
+credentials = authenticator.get_credentials()
+if not credentials:
+    st.stop()
+
+session = session_provider.get_session(credentials.id_token, region_name=region)
+
+# Test the session with any AWS service
+st.subheader("Successfully assumed the following AWS role")
+sts = session.client("sts")
+response = sts.get_caller_identity()
+response.pop("ResponseMetadata")
+st.write(response)
