@@ -1,8 +1,9 @@
 from typing import Dict, Any, Callable, Optional
-from botocore.session import get_session as get_botocore_session
-from botocore.credentials import Credentials, RefreshableCredentials
 
 import boto3
+import botocore.session, botocore.credentials
+
+
 
 class Boto3SessionProvider:
     """This class creates boto3 Session objects that authenticate boto3 calls with the cognito
@@ -60,7 +61,7 @@ class Boto3SessionProvider:
         )
         return response["Credentials"]
 
-    def _get_credentials(self, id_token: str) -> Credentials:
+    def _get_credentials(self, id_token: str) -> botocore.credentials.Credentials:
         identity_id = self._get_identity_id(id_token)
         aws_credentials = self._get_aws_credentials(identity_id, id_token)
         kwargs = {
@@ -69,12 +70,18 @@ class Boto3SessionProvider:
             "token": aws_credentials["SessionToken"],
             "method": "custom_cognito_auth",
         }
-        credentials = RefreshableCredentials(
+        credentials = botocore.credentials.RefreshableCredentials(
             **kwargs,
             expiry_time=aws_credentials["Expiration"],
             refresh_using=lambda: self._get_credentials(self.refresh_callback()),
-        ) if self.refresh_callback is not None else Credentials(**kwargs)
+        ) if self.refresh_callback is not None else botocore.credentials.Credentials(**kwargs)
         return credentials
+
+    def _get_botocore_session(self, id_token: str) -> botocore.session.Session:
+        botocore_session = botocore.session.get_session()
+        credentials = self._get_credentials(id_token)
+        setattr(botocore_session, "_credentials", credentials)
+        return botocore_session
 
     def get_session(self, id_token: str, **kwargs) -> boto3.Session:
         """Get a boto3 session, configured with the Cognito credentials.
@@ -83,7 +90,16 @@ class Boto3SessionProvider:
             id_token: The identity token of the Cognito identity
             **kwargs: Keyword arguments to be passed to boto3.Session initializer
         """
-        botocore_session = get_botocore_session()
-        credentials = self._get_credentials(id_token)
-        setattr(botocore_session, "_credentials", credentials)
+        botocore_session = self._get_botocore_session(id_token=id_token)
         return boto3.Session(botocore_session=botocore_session, **kwargs)
+
+    def setup_default_session(self, id_token: str, **kwargs) -> None:
+        """Sets up the default boto3 session with Cognito credentials.
+
+        The default session will be used by boto3.client() and boto3.resource() calls.
+        Args:
+            id_token: The identity token of the Cognito identity
+            **kwargs: Keyword arguments to be passed to boto3.Session initializer
+        """
+        botocore_session = self._get_botocore_session(id_token=id_token)
+        boto3.setup_default_session(botocore_session=botocore_session, **kwargs)

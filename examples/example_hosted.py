@@ -12,7 +12,7 @@ cognito_domain = os.environ["COGNITO_DOMAIN"]
 redirect_uri = os.environ["COGNITO_REDIRECT_URI"]
 region = os.environ["AWS_REGION"]
 identity_pool_id = os.environ["COGNITO_IDENTITY_POOL_ID"]
-aws_account_id = ""
+aws_account_id = os.environ["AWS_ACCOUNT_ID"]
 
 authenticator = CognitoHostedUIAuthenticator(
     pool_id=pool_id,
@@ -25,7 +25,7 @@ authenticator = CognitoHostedUIAuthenticator(
 
 session_provider = Boto3SessionProvider(
     region=region,
-    account_id="647241695869",
+    account_id=aws_account_id,
     user_pool_id=pool_id,
     identity_pool_id=identity_pool_id,
 )
@@ -54,11 +54,11 @@ credentials = authenticator.get_credentials()
 if not credentials:
     st.stop()
 
-session = session_provider.get_session(credentials.id_token, region_name=region)
+session_provider.setup_default_session(credentials.id_token, region_name=region)
 
 # Test the session with any AWS service
 st.subheader("Successfully assumed the following AWS role")
-sts = session.client("sts")
+sts = boto3.client("sts")
 response = sts.get_caller_identity()
 response.pop("ResponseMetadata")
 st.write(response)
