@@ -1,4 +1,4 @@
-from typing import Dict, Any, Type, TypeVar, Optional, Tuple
+from typing import Dict, Any, Type, TypeVar, Optional, Tuple, List
 import time
 from abc import ABC, abstractmethod
 import boto3
@@ -635,6 +635,14 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
             f"&redirect_uri={self.redirect_uri}"
         )
 
+    @staticmethod
+    def get_code(query_params: Dict[str, List[str]]) -> Optional[str]:
+        return query_params["code"][0] if (
+            "code" in query_params
+            and len(query_params["code"]) > 0
+            and query_params["code"][0]
+        ) else None
+
     def login(self, show_login_button=True, **kwargs) -> bool:
 
         # logged in
@@ -643,9 +651,10 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
 
         query_params = st.experimental_get_query_params()
         logged_in = False
-        if "code" in query_params:
+        code = self.get_code(query_params)
+        if code:
             try:
-                credentials = self._credentials_from_auth_code(code=query_params["code"][0])
+                credentials = self._credentials_from_auth_code(code=code)
             except Exception as exc:
                 st.error(str(exc))
                 self._set_state_logout()
