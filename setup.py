@@ -11,7 +11,7 @@ setup(
         "pycognito >= 2022.12.0",
         "pydantic < 2.0.0",
         "requests >= 2.31.0",
-        "streamlit >= 1.17.0",
+        "streamlit >= 1.27.0",
         "extra_streamlit_components >= 0.1.56",
     ],
     author="Sarawin Khemmachotikun",
