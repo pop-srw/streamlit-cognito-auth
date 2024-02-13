@@ -3,14 +3,15 @@ import streamlit as st
 
 from streamlit_cognito_auth import CognitoAuthenticator
 
-pool_id = os.environ.get("POOL_ID")
-app_client_id = os.environ.get("APP_CLIENT_ID")
-app_client_secret = os.environ.get("APP_CLIENT_SECRET")
+pool_id = os.environ["POOL_ID"]
+app_client_id = os.environ["APP_CLIENT_ID"]
+app_client_secret = os.environ["APP_CLIENT_SECRET"]
 
 authenticator = CognitoAuthenticator(
     pool_id=pool_id,
     app_client_id=app_client_id,
     app_client_secret=app_client_secret,
+    use_cookies=False
 )
 
 is_logged_in = authenticator.login()
@@ -19,6 +20,7 @@ if not is_logged_in:
 
 
 def logout():
+    print("Logout in example")
     authenticator.logout()
 
 
