@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2024-02-14
+
+### Added
+
+- Introduced hosted UI authentication flow.
+- Implemented a customizable login button.
+- Added the ability to disable the login button.
+- Enhanced documentation.
+
 ## [1.2.0] - 2023-06-04
 
 ### Added
