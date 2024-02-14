@@ -1,0 +1,42 @@
+[project]
+name = "streamlit-cognito-auth"
+version = "1.4.0"
+description = "A Streamlit component for authenticating users with AWS Cognito"
+authors = [
+    { name = "Sarawin Khemmachotikun", email = "khemmachotikun.s@gmail.com" }
+]
+dependencies = [
+        "boto3 >= 1.26.52",
+        "pycognito >= 2022.12.0",
+        "pydantic >= 2.0.0",
+        "requests >= 2.31.0",
+        "streamlit >= 1.27.0",
+        "extra_streamlit_components >= 0.1.56",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.scripts]
+hello = "streamlit_cognito_auth:hello"
+
+[project.urls]
+Homepage = "https://github.com/pop-srw/streamlit-cognito-auth"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/streamlit_cognito_auth"]
