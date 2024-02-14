@@ -649,7 +649,7 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
         if self.session_manager.is_logged_in():
             return True
 
-        query_params = st.experimental_get_query_params()
+        query_params = st.query_params()
         logged_in = False
         code = self.get_code(query_params)
         if code:
@@ -660,7 +660,7 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
                 self._set_state_logout()
             else:
                 logged_in = self._set_state_login(credentials)
-                st.experimental_set_query_params(code="")
+                st.query_params(code="")
         elif show_login_button:
             self.show_login_button(**kwargs)
 
