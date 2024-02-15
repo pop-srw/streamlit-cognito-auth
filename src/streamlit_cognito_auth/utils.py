@@ -16,5 +16,4 @@ def verify_access_token(pool_id, app_client_id, region, token) -> Tuple[Dict[str
         user = u.get_user()
         return claims, user
     except pycognito.exceptions.TokenVerificationException as e:
-        print("error")
         raise TokenVerificationException(e)
