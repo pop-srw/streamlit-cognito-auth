@@ -403,7 +403,7 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
 
         except pycognito.exceptions.ForceChangePasswordException as e:
             logger.info("Force password reset")
-            self._set_reset_password(username, password)
+            self._set_reset_password_session(username, password)
             return False
 
         except self.client.exceptions.PasswordResetRequiredException as e:
