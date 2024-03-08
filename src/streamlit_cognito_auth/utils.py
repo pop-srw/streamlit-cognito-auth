@@ -13,5 +13,4 @@ def verify_access_token(pool_id, app_client_id, region, token):
         claims = u.verify_token(token, "access_token", "access")
         return claims
     except pycognito.exceptions.TokenVerificationException as e:
-        print("error")
         raise TokenVerificationException(e)

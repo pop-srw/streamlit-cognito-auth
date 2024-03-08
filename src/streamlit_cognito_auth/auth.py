@@ -255,7 +255,7 @@ class CognitoAuthenticator:
 
             status_container.success("Logged in")
             time.sleep(1.5)
-            st.experimental_rerun()
+            st.rerun()
 
         # login
         login_submitted, username, password, status_container = self._show_login_form(
@@ -273,7 +273,7 @@ class CognitoAuthenticator:
             if st.session_state["auth_reset_password_session"]:
                 status_container.info("Password reset is required")
                 time.sleep(1.5)
-                st.experimental_rerun()
+                st.rerun()
 
             if not is_logged_in:
                 status_container.error("Invalid username or password")
@@ -281,12 +281,12 @@ class CognitoAuthenticator:
 
             status_container.success("Logged in")
             time.sleep(1.5)
-            st.experimental_rerun()
+            st.rerun()
 
         except Exception as e:
             status_container.error(f"Unknown error {e}")
             time.sleep(1.5)
-            st.experimental_rerun()
+            st.rerun()
 
         # should not reach here
         # prevent other code from running
