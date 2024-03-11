@@ -184,7 +184,21 @@ class CognitoAuthCookieManager(CognitoAuthCookieManagerBase):
             )
         self.cookie_manager = stx.CookieManager()
 
+    def remove_empty_container_element(self) -> None:
+        """
+        Temporary fix to the bug that add vertical extra whitespace when setting cookies.
+        See https://github.com/Mohamed-512/Extra-Streamlit-Components/issues/62
+        """
+        st.markdown(
+            f"""
+    <style>
+    .element-container:has(iframe[height="0"]) {{ display: none; }}
+    </style>
+    """, unsafe_allow_html=True
+        )
+
     def set_credentials(self, credentials: Credentials) -> None:
+        self.remove_empty_container_element()
         self.cookie_manager.set("id_token", credentials.id_token, key="set_id_token")
         self.cookie_manager.set("access_token", credentials.access_token, key="set_access_token")
         self.cookie_manager.set("refresh_token", credentials.refresh_token, key="set_refresh_token")
