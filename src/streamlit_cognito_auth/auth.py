@@ -271,7 +271,7 @@ class CognitoAuthenticatorBase(ABC):
             logged_in = self._set_state_login(credentials=credentials)
         if not logged_in:
             logger.info("Clearing cookie credentials")
-            self.cookie_manager.reset_credentials()
+            # self.cookie_manager.reset_credentials()
         return logged_in
 
     def _set_state_login(self, credentials: Credentials) -> bool:
