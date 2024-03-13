@@ -184,21 +184,7 @@ class CognitoAuthCookieManager(CognitoAuthCookieManagerBase):
             )
         self.cookie_manager = stx.CookieManager()
 
-    def remove_empty_container_element(self) -> None:
-        """
-        Temporary fix to the bug that add vertical extra whitespace when setting cookies.
-        See https://github.com/Mohamed-512/Extra-Streamlit-Components/issues/62
-        """
-        st.markdown(
-            f"""
-    <style>
-    .element-container:has(iframe[height="0"]) {{ display: none; }}
-    </style>
-    """, unsafe_allow_html=True
-        )
-
     def set_credentials(self, credentials: Credentials) -> None:
-        self.remove_empty_container_element()
         self.cookie_manager.set("id_token", credentials.id_token, key="set_id_token")
         self.cookie_manager.set("access_token", credentials.access_token, key="set_access_token")
         self.cookie_manager.set("refresh_token", credentials.refresh_token, key="set_refresh_token")
@@ -207,6 +193,7 @@ class CognitoAuthCookieManager(CognitoAuthCookieManagerBase):
 
     def load_credentials(self) -> Optional[Credentials]:
         cookies = self.cookie_manager.get_all("load_credentials_get_all")
+        time.sleep(0.3)
         try:
             return Credentials(**cookies)
         except ValidationError:
@@ -265,7 +252,6 @@ class CognitoAuthenticatorBase(ABC):
 
     def _login_from_cookies(self) -> bool:
         credentials = self.cookie_manager.load_credentials()
-        time.sleep(0.5)
         logged_in = False
         if credentials:
             logger.info("Found credentials in cookies, trying to log in ...")
@@ -516,7 +502,6 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
                 return False
 
             status_container.success("Logged in")
-            time.sleep(1.5)
             st.rerun()
 
         logger.info("Trying to log in from saved credentials ...")
@@ -550,7 +535,6 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
             return False
 
         status_container.success("Logged in")
-        time.sleep(1.5)
         st.rerun()
 
         # should not reach here
