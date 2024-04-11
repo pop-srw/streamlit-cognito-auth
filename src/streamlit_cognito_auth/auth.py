@@ -17,7 +17,6 @@ from pycognito import AWSSRP
 
 from pydantic import BaseModel, Field, ValidationError, Extra, parse_obj_as
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 CR = TypeVar('CR', bound='Credentials')
