@@ -12,7 +12,7 @@ import streamlit as st
 from .exceptions import TokenVerificationException
 from .utils import verify_access_token
 
-import pycognito # type: ignore
+import pycognito  # type: ignore
 from pycognito import AWSSRP
 
 from pydantic import BaseModel, Field, ValidationError, Extra, parse_obj_as
@@ -20,7 +20,8 @@ from pydantic import BaseModel, Field, ValidationError, Extra, parse_obj_as
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-CR = TypeVar('CR', bound='Credentials')
+CR = TypeVar("CR", bound="Credentials")
+
 
 class Credentials(BaseModel, extra=Extra.allow):
     """Temporary AWS Cognito credentials."""
@@ -48,8 +49,10 @@ class CognitoAuthSessionStateManager:
     """Saves and loads authorization credentials to streamlit session state."""
 
     def __init__(self) -> None:
-        def init_state(name, default_value: Any=""):
-            if not name in st.session_state: st.session_state[name] = default_value
+        def init_state(name, default_value: Any = ""):
+            if not name in st.session_state:
+                st.session_state[name] = default_value
+
         init_state("auth_id_token")
         init_state("auth_access_token")
         init_state("auth_refresh_token")
@@ -115,7 +118,8 @@ class CognitoAuthSessionStateManager:
         """Returns the email saved in streamlit session state."""
         return st.session_state.get("auth_email") or None
 
-    def set_reset_password_session(self,
+    def set_reset_password_session(
+        self,
         reset_password_username: str,
         reset_password_password: str,
         reset_password_session: str = "reset_password",
@@ -177,7 +181,7 @@ class CognitoAuthCookieManager(CognitoAuthCookieManagerBase):
 
     def __init__(self) -> None:
         try:
-            import extra_streamlit_components as stx # type: ignore
+            import extra_streamlit_components as stx  # type: ignore
         except ImportError:
             raise RuntimeError(
                 "To use cookies you must install `pip install extra-streamlit-components`"
@@ -186,10 +190,18 @@ class CognitoAuthCookieManager(CognitoAuthCookieManagerBase):
 
     def set_credentials(self, credentials: Credentials) -> None:
         self.cookie_manager.set("id_token", credentials.id_token, key="set_id_token")
-        self.cookie_manager.set("access_token", credentials.access_token, key="set_access_token")
-        self.cookie_manager.set("refresh_token", credentials.refresh_token, key="set_refresh_token")
-        self.cookie_manager.set("expires_in", credentials.expires_in, key="set_expires_in")
-        self.cookie_manager.set("token_type", credentials.token_type, key="set_token_type")
+        self.cookie_manager.set(
+            "access_token", credentials.access_token, key="set_access_token"
+        )
+        self.cookie_manager.set(
+            "refresh_token", credentials.refresh_token, key="set_refresh_token"
+        )
+        self.cookie_manager.set(
+            "expires_in", credentials.expires_in, key="set_expires_in"
+        )
+        self.cookie_manager.set(
+            "token_type", credentials.token_type, key="set_token_type"
+        )
 
     def load_credentials(self) -> Optional[Credentials]:
         cookies = self.cookie_manager.get_all("load_credentials_get_all")
@@ -208,6 +220,7 @@ class CognitoAuthCookieManager(CognitoAuthCookieManagerBase):
                 logger.info(f"deleted cookie: {name}")
             except KeyError:
                 logger.warning(f"Requested to delete non existing cookie: {name}")
+
         logger.info("reset_credentials start")
         delete_cookie("id_token")
         delete_cookie("access_token")
@@ -232,9 +245,9 @@ class CognitoAuthenticatorBase(ABC):
         self,
         pool_id: str,
         app_client_id: str,
-        app_client_secret: Optional[str]=None,
-        boto_client: Optional[Any]=None,
-        use_cookies: bool=True,
+        app_client_secret: Optional[str] = None,
+        boto_client: Optional[Any] = None,
+        use_cookies: bool = True,
     ):
         self.pool_region = pool_id.split("_")[0]
         self.client = boto_client or boto3.client(
@@ -246,7 +259,9 @@ class CognitoAuthenticatorBase(ABC):
 
         self.session_manager = CognitoAuthSessionStateManager()
         self.cookie_manager = (
-            CognitoAuthCookieManager() if use_cookies else CognitoAuthCookieManagerNoop()
+            CognitoAuthCookieManager()
+            if use_cookies
+            else CognitoAuthCookieManagerNoop()
         )
 
     def _login_from_cookies(self) -> bool:
@@ -266,7 +281,7 @@ class CognitoAuthenticatorBase(ABC):
                 self.pool_id,
                 self.app_client_id,
                 self.pool_region,
-                credentials.access_token
+                credentials.access_token,
             )
         except TokenVerificationException as exc:
             logger.exception(exc)
@@ -334,6 +349,7 @@ class CognitoAuthenticatorBase(ABC):
 
     def get_credentials(self) -> Optional[Credentials]:
         return self.session_manager.load_credentials()
+
 
 class CognitoAuthenticator(CognitoAuthenticatorBase):
     """Authenticates the user with Cognito using custom streamlit UI elements."""
@@ -403,7 +419,7 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
 
         except pycognito.exceptions.ForceChangePasswordException as e:
             logger.info("Force password reset")
-            self._set_reset_password(username, password)
+            self._set_reset_password_session(username, password)
             return False
 
         except self.client.exceptions.PasswordResetRequiredException as e:
@@ -425,8 +441,8 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
             credentials = Credentials.from_tokens(tokens)
             return self._set_state_login(credentials=credentials)
 
-    def _set_reset_password_session(self,
-        reset_password_username: str, reset_password_password: str
+    def _set_reset_password_session(
+        self, reset_password_username: str, reset_password_password: str
     ) -> None:
         logger.info("Set password reset state")
         self.session_manager.set_reset_password_session(
@@ -544,7 +560,6 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
         st.stop()
 
 
-
 class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
     """Authenticates the user with Cognito using Cognito Hosted UI.
 
@@ -577,7 +592,8 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
     }}
 </style>"""
 
-    def __init__(self,
+    def __init__(
+        self,
         cognito_domain: str,
         redirect_uri: str,
         **kwargs,
@@ -598,11 +614,11 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
             "grant_type": "authorization_code",
             "client_id": self.app_client_id,
             "code": code,
-            "redirect_uri": str(self.redirect_uri)
+            "redirect_uri": str(self.redirect_uri),
         }
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
-            "Authorization": f"Basic {secret_hash}"
+            "Authorization": f"Basic {secret_hash}",
         }
         resp = requests.post(token_url, params=payload, headers=headers)
 
@@ -621,11 +637,13 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
         target: str = "_blank",
     ) -> None:
         login_url = self.login_url(response_type=response_type)
-        button_style = self.BUTTON_STYLE.format(border_color=border_color, hover_color=hover_color)
+        button_style = self.BUTTON_STYLE.format(
+            border_color=border_color, hover_color=hover_color
+        )
         st.write(button_style, unsafe_allow_html=True)
         st.write(
             f"""<a href="{login_url}" target="{target}"><button class="btn">Login</button></a>""",
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
     def login_url(self, response_type: str = "code") -> str:
@@ -637,11 +655,15 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
 
     @staticmethod
     def get_code(query_params: Dict[str, List[str]]) -> Optional[str]:
-        return query_params["code"][0] if (
-            "code" in query_params
-            and len(query_params["code"]) > 0
-            and query_params["code"][0]
-        ) else None
+        return (
+            query_params["code"][0]
+            if (
+                "code" in query_params
+                and len(query_params["code"]) > 0
+                and query_params["code"][0]
+            )
+            else None
+        )
 
     def login(self, show_login_button=True, **kwargs) -> bool:
 
