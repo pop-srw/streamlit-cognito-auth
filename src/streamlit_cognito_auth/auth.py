@@ -17,7 +17,6 @@ from pycognito import AWSSRP
 
 from pydantic import BaseModel, Field, ValidationError, Extra, parse_obj_as
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 CR = TypeVar('CR', bound='Credentials')
@@ -193,6 +192,7 @@ class CognitoAuthCookieManager(CognitoAuthCookieManagerBase):
 
     def load_credentials(self) -> Optional[Credentials]:
         cookies = self.cookie_manager.get_all("load_credentials_get_all")
+        time.sleep(0.3)
         try:
             return Credentials(**cookies)
         except ValidationError:
@@ -295,7 +295,6 @@ class CognitoAuthenticatorBase(ABC):
         logger.info("_login_from_saved_credentials")
         session_state_credentials = self.session_manager.load_credentials()
         if session_state_credentials:
-            print("Found credentials in session state:", session_state_credentials)
             logged_in = self._set_state_login(credentials=session_state_credentials)
             logger.info(f"Logged in with session state credentials: {logged_in}")
         else:
@@ -403,7 +402,7 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
 
         except pycognito.exceptions.ForceChangePasswordException as e:
             logger.info("Force password reset")
-            self._set_reset_password(username, password)
+            self._set_reset_password_session(username, password)
             return False
 
         except self.client.exceptions.PasswordResetRequiredException as e:
@@ -502,7 +501,6 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
                 return False
 
             status_container.success("Logged in")
-            time.sleep(1.5)
             st.rerun()
 
         logger.info("Trying to log in from saved credentials ...")
@@ -536,7 +534,6 @@ class CognitoAuthenticator(CognitoAuthenticatorBase):
             return False
 
         status_container.success("Logged in")
-        time.sleep(1.5)
         st.rerun()
 
         # should not reach here
@@ -557,25 +554,6 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
         cognito_domain: Cognito hosted UI domain.
         redirect_uri: Redirect URI of this streamlit application.
     """
-
-    BUTTON_STYLE = """\
-<style>
-    .btn {{
-        cursor: pointer;
-        border: 1px solid;
-        border-radius: 0.5rem;
-        background-color: transparent;
-        border-color: {border_color};
-        padding-top: 0.25rem;
-        padding-bottom: 0.25rem;
-        padding-right: 0.75rem;
-        padding-left: 0.75rem
-    }}
-    .btn:hover {{
-        color: {hover_color};
-        border-color: {hover_color};
-    }}
-</style>"""
 
     def __init__(self,
         cognito_domain: str,
@@ -616,17 +594,9 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
     def show_login_button(
         self,
         response_type: str = "code",
-        border_color: str = "rgba(49, 51, 63, 0.2)",
-        hover_color: str = "rgb(0, 82, 238)",
-        target: str = "_blank",
     ) -> None:
         login_url = self.login_url(response_type=response_type)
-        button_style = self.BUTTON_STYLE.format(border_color=border_color, hover_color=hover_color)
-        st.write(button_style, unsafe_allow_html=True)
-        st.write(
-            f"""<a href="{login_url}" target="{target}"><button class="btn">Login</button></a>""",
-            unsafe_allow_html=True
-        )
+        st.link_button("Login", login_url)
 
     def login_url(self, response_type: str = "code") -> str:
         """Returns the hosted UI login url."""
@@ -637,10 +607,10 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
 
     @staticmethod
     def get_code(query_params: Dict[str, List[str]]) -> Optional[str]:
-        return query_params["code"][0] if (
-            "code" in query_params
+        return query_params["code"] if (
+            "code" in query_params.keys()
             and len(query_params["code"]) > 0
-            and query_params["code"][0]
+            and query_params["code"]
         ) else None
 
     def login(self, show_login_button=True, **kwargs) -> bool:
@@ -649,7 +619,7 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
         if self.session_manager.is_logged_in():
             return True
 
-        query_params = st.experimental_get_query_params()
+        query_params = st.query_params
         logged_in = False
         code = self.get_code(query_params)
         if code:
@@ -660,7 +630,7 @@ class CognitoHostedUIAuthenticator(CognitoAuthenticatorBase):
                 self._set_state_logout()
             else:
                 logged_in = self._set_state_login(credentials)
-                st.experimental_set_query_params(code="")
+                st.query_params["code"] = ""
         elif show_login_button:
             self.show_login_button(**kwargs)
 
