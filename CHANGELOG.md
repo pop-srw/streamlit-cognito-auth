@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2024-04-28
+
+### Added
+
+- Introduced compatibility with Pydantic 2 for updated dependencies.
+- Introduced compatibility with Streamlit 1.31, adapting to the finalized status and changes in query_params.
+
+### Changed
+
+- Updated the "Show Login Button" to native Streamlit components.
+- Transitioned the build system from setup.py to pyproject.toml while supporting the classic build command.
+
+### Removed
+
+- Removed deprecated print statements.
+
 ## [1.3.0] - 2024-02-14
 
 ### Added
