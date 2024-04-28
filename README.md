@@ -101,3 +101,4 @@ Reset password and login
 - This package uses the `pycognito` library for authentication, which is a Python library that provides a simple interface for working with AWS Cognito. We would like to express our gratitude to the authors of `pycognito` for their work and for providing an excellent library for working with AWS Cognito.
 - We would also like to thank OpenAI's ChatGPT for providing helpful suggestions and examples throughout the development of this project.
 - Special thanks to mrtj for the nice hosted UI feature. ([#6](https://github.com/pop-srw/streamlit-cognito-auth/pull/6))
+- Special thanks to lambda-science for for fixing a major undefined \_set_reset_password bug and contributing many improvements ([#10](https://github.com/pop-srw/streamlit-cognito-auth/pull/10))

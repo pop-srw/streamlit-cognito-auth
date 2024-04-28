@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
 - Introduced compatibility with Pydantic 2 for updated dependencies.
 - Introduced compatibility with Streamlit 1.31, adapting to the finalized status and changes in query_params.
 
+### Fixed
+
+- Fixed undefined \_set_reset_password bug in CognitoAuthenticator class.
+
 ### Changed
 
 - Updated the "Show Login Button" to native Streamlit components.
